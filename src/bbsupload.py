@@ -20,7 +20,7 @@ def upload_file(s, headers, payload, filename):
   return m.groups()[0]
 
 
-def post(username, password, board, title, content, files=[]):
+def post(config):
   s = Session()
 
   headers = {
@@ -31,8 +31,8 @@ def post(username, password, board, title, content, files=[]):
 
   resp = s.post('https://bbs.sjtu.edu.cn/bbslogin',
                 data={
-                    'id': username,
-                    'pw': password
+                    'id': config['id'],
+                    'pw': config['pw']
                 },
                 headers=headers)
 
@@ -42,8 +42,8 @@ def post(username, password, board, title, content, files=[]):
     print 'Failed to login!', resp.text.encode('gb2312')
 
   payload = {
-      'board': board,
-      'title': title,
+      'board': config['board'],
+      'title': config['title'],
       'signature': 1,
       'autocr': 'on',
       'text': 'content',
@@ -51,13 +51,17 @@ def post(username, password, board, title, content, files=[]):
       'live': 180,
   }
 
-  full_content = content + '\n'
+  full_content = config['content'] + '\n'
 
-  for filename in files:
-    print 'uploading', filename
+  # upload files
+  for filename in config['files']:
+    print 'uploading', filename, 'to', config['board']
     fileurl = upload_file(s, headers, payload, filename)
     print 'done', fileurl
     full_content += fileurl + '\n'
+
+  if config['ad'] == True:
+    full_content += 'Posted by upload.py'
 
   payload['text'] = full_content
 
@@ -74,36 +78,58 @@ def post(username, password, board, title, content, files=[]):
 
 
 def print_usage(argv):
-  print 'Usage:', './' + argv[0], '-i id -p pw [options] file1 file2 ...'
+  print 'Usage:', argv[0], '-i id -p pw [options] file1 file2 file3...'
+  print 'Options:'
+  print '  -i, --id:      ', 'bbs id'
+  print '  -p, --pw:      ', 'bbs password'
+  print '  -b, --board:   ', 'board to upload/post'
+  print '  -t, --title:   ', 'post title'
+  print '  -c, --content: ', 'content of the post'
+  print '  -n, --no-ad:   ', 'post without ad'
 
 if __name__ == '__main__':
-  id = None
-  pw = None
-  board = 'PPPerson'
-  title = 'noname'
-  files = []
-  for index, arg in enumerate(sys.argv):
+  config = {
+      'id': None,
+      'pw': None,
+      'board': 'PPPerson',
+      'title': 'noname',
+      'content': '',
+      'files': [],
+      'ad': True
+  }
+  index = 1
+  while index < len(sys.argv):
+    arg = sys.argv[index]
     if arg == '--id' or arg == '-i':
-      id = sys.argv[index + 1]
+      index += 1
+      config['id'] = sys.argv[index]
     elif arg == '--pw' or arg == '-p':
-      pw = sys.argv[index + 1]
+      index += 1
+      config['pw'] = sys.argv[index]
     elif arg == '--board' or arg == '-b':
-      board = sys.argv[index + 1]
+      index += 1
+      config['board'] = sys.argv[index]
     elif arg == '--title' or arg == '-t':
-      title = sys.argv[index + 1]
+      index += 1
+      config['title'] = sys.argv[index]
     elif arg == '--content' or arg == '-c':
-      content = sys.argv[content]
+      index += 1
+      config['content'] = sys.argv[index]
+    elif arg == '--no-ad' or arg == '-n':
+      config['ad'] = False
     else:
-      files.append(arg)
+      config['files'].append(arg)
+    index += 1
 
-    if id is None or pw is None:
-      print '!Error! id or pw is null'
-      print_usage(sys.argv)
-      sys.exit(-1)
+  if config['id'] is None or config['pw'] is None:
+    print '!Error! id or pw is null'
+    print_usage(sys.argv)
+    sys.exit(-1)
 
-    if len(files) == 0:
-      print '!Error! file set is empty'
-      print_usage(sys.argv)
-      sys.exit(-1)
+  l = len(config['files'])
+  if l == 0:
+    print '!Warning! file set is empty'
+  else:
+    print l, 'files found!'
 
-    post(id, pw, board, title, content, files)
+  post(config)
