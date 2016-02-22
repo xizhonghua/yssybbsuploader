@@ -21,5 +21,5 @@
 
 ### Example
 ```
-./bbsupload.py -i your_id -p your_pwd -b PPPerson -t test -c "test of new tool" ~/Pictures/jpeg_full/wanzi/*small*.jpg
+./bbsupload.py -i your_id -p your_pwd -b PPPerson -t test -c "test of new tool" ~/Pictures/*.jpg
 ```
