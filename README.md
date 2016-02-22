@@ -2,7 +2,7 @@
 
 ### Features
 * Upload images/files to [YSSY BBS](https://bbs.sjtu.edu.cn)
-* Post with content links to all uploaded files
+* Post with content and links to all uploaded files
 
 ### Usage
 ```
