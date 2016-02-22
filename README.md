@@ -5,7 +5,9 @@
 * Post with links to all uploaded files
 
 ### Usage
-```./bbsupload.py -i id -p pw [options] file1 file2 file3...```
+```
+./bbsupload.py -i id -p pw [options] [file1 file2 file3 ...] 
+```
 
 ### Options
 ```
