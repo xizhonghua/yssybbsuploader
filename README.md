@@ -23,3 +23,6 @@
 ```
 ./bbsupload.py -i your_id -p your_pwd -b PPPerson -t test -c "test of new tool" ~/Pictures/*.jpg
 ```
+
+### TODO
+* auto resize large image
