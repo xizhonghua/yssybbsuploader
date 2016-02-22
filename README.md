@@ -1,8 +1,8 @@
 # yssybbsuploader
 
-### About
+### Features
 * Upload images/files to [YSSY BBS](https://bbs.sjtu.edu.cn)
-* Post with links to all uploaded files
+* Post with content links to all uploaded files
 
 ### Usage
 ```
