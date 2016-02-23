@@ -24,5 +24,9 @@
 ./bbsupload.py -i your_id -p your_pwd -b PPPerson -t test -c "test of new tool" ~/Pictures/*.jpg
 ```
 
+### Dependencies
+* python2.7 ?
+* [requests](http://docs.python-requests.org/en/master/)
+
 ### TODO
 * auto resize large image
