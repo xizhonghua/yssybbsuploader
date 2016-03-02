@@ -6,7 +6,7 @@
 
 ### Usage
 ```
-./bbsupload.py ../src/bbsupload.py [options] [file1 file2 file3...]
+./bbsupload.py [options] [file1 file2 file3...]
 ```
 
 ### Accounts
