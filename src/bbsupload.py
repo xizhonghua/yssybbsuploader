@@ -5,89 +5,189 @@
 # Email: xizhonghua (AT) gmail.com
 ################################################
 
+import imghdr
+import math
 import json
+import os
 import re
 import sys
+import time
+from PIL import Image
+from multiprocessing.pool import ThreadPool
 from requests import Request, Session
 
 
-def upload_file(s, headers, payload, filename):
-  files = {
-      'up': open(filename, 'rb')
-  }
-
-  resp = s.post('https://bbs.sjtu.edu.cn/bbsdoupload',
-                headers=headers,
-                files=files,
-                data=payload)
-
-  m = re.search(r"<font color=green>([^<]+)", resp.text)
-
-  return m.groups()[0]
+def unwrap_self_upload_file(arg, **kwarg):
+  uploader = arg[0]
+  filename = arg[1]
+  return uploader.upload_file(filename)
 
 
-def post(config):
-  s = Session()
+class Uploader():
 
-  headers = {
-      'Origin': 'https://bbs.sjtu.edu.cn',
-      'Referer': 'https://bbs.sjtu.edu.cn/file/bbs/index/index.htm',
-      'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36'
-  }
+  def __init__(self, config):
+    self.config = config
+    self.headers = {
+        'Origin': 'https://bbs.sjtu.edu.cn',
+        'Referer': 'https://bbs.sjtu.edu.cn/file/bbs/index/index.htm',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_11_3) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.116 Safari/537.36'
+    }
+    self.session = Session()
 
-  resp = s.post('https://bbs.sjtu.edu.cn/bbslogin',
-                data={
-                    'id': config['id'],
-                    'pw': config['pw']
-                },
-                headers=headers)
+  # resize an image
+  def resize_img(self, filename, factor=1.0):
+    img = Image.open(filename)
+    scale = 1800.0 / max(img.size) * factor
+    new_size = (int(img.size[0] * scale), int(img.size[1] * scale))
+    new_img = img.resize(new_size, Image.LANCZOS)
+    new_filename = filename + '._resized_by_uploader.jpg'
+    new_img.save(new_filename, "JPEG", quality=80, optimize=True)
+    return new_filename
 
-  if 'utmpuserid' in s.cookies.get_dict():
-    print 'Logged in with id:', config['id']
-  else:
-    print 'Failed to login with id:', config['id']
-    return
+  # fit an image to given file size
+  def fit_img(self, filename, max_size=1000 * 1000):
+    factor = 1.0
+    tmp_filename = None
+    file_size = 0
+    while True:
+      tmp_filename = self.resize_img(filename, factor)
+      file_size = os.path.getsize(tmp_filename)
+      if file_size > max_size:
+        factor *= 0.75
+      else:
+        break
+    return tmp_filename, file_size
 
-  payload = {
-      'board': config['board'],
-      'title': config['title'].decode('utf-8').encode('gb2312'),
-      'signature': 1,
-      'autocr': 'on',
-      'text': 'content',
-      'level': 0,
-      'live': 180,
-  }
+  # test whether a file is an image
+  def is_image(self, filename):
+    if imghdr.what(filename) == None:
+      return False
+    return True
 
-  print 'board   =', config['board']
-  print 'title   =', config['title']
-  print 'content =', config['content']
+  # upload a file to server, return its uploaded url
+  def upload_file(self, filename):
 
-  full_content = config['content'].decode('utf-8')
-  # upload files
-  for filename in config['files']:
-    print 'uploading', filename, 'to', config['board']
-    fileurl = upload_file(s, headers, payload, filename)
-    print 'done', fileurl
-    full_content += fileurl + '\n'
+    # file size in kb
+    file_size = int(os.path.getsize(filename) / 1024.00)
 
-  if config['ad'] == True:
-    full_content += 'Post by bbsupload.py ver: ' + config['version']
+    sys.stdout.write(
+        'uploading ' +
+        filename + ' [' + str(file_size) + 'kb]' +
+        ' to ' +
+        self.config['board'] +
+        '\n')
 
-  payload['text'] = full_content.encode('gb2312')
+    tmp_filename = None
+    # large file
+    if file_size > 1000:
+      if self.is_image(filename):
+        tmp_filename, size = self.fit_img(filename)
+        sys.stdout.write(
+            'resized, new image filesize = ' +
+            str(
+                size /
+                1024) +
+            'kb\n')
+        # recursive call...
+        url = self.upload_file(tmp_filename)
 
-  resp = s.post(
-      'https://bbs.sjtu.edu.cn/bbssnd',
-      headers=headers,
-      data=payload)
+        return url
+      else:
+        # other types
+        sys.stdout.write('Cannot handle non-image large file...')
+        return ''
 
-  print 'Posting...'
-  if resp.status_code == 200:
-    print 'Posted!'
-  else:
-    print '!Error! Failed to post'
+    files = {
+        'up': open(filename, 'rb')
+    }
 
+    resp = self.session.post('https://bbs.sjtu.edu.cn/bbsdoupload',
+                             headers=self.headers,
+                             files=files,
+                             data=self.payload)
+
+    m = re.search(r"<font color=green>([^<]+)", resp.text)
+
+    url = m.groups()[0]
+
+    sys.stdout.write('uploaded url = ' + url + '\n')
+
+    return url
+
+  def login(self):
+    resp = self.session.post('https://bbs.sjtu.edu.cn/bbslogin',
+                             data={
+                                 'id': self.config['id'],
+                                 'pw': self.config['pw']
+                             },
+                             headers=self.headers)
+
+    if 'utmpuserid' in self.session.cookies.get_dict():
+      print 'Logged in with id:', self.config['id']
+      return True
+    else:
+      print 'Failed to login with id:', self.config['id']
+      return False
+
+  def post(self):
+
+    self.payload = {
+        'board': self.config['board'],
+        'title': self.config['title'].decode('utf-8').encode('gb2312'),
+        'signature': 1,
+        'autocr': 'on',
+        'text': 'content',
+        'level': 0,
+        'live': 180,
+    }
+
+    print 'board   =', self.config['board']
+    print 'title   =', self.config['title']
+    print 'content =', self.config['content']
+
+    full_content = self.config['content'].decode('utf-8')
+
+    files = self.config['files']
+
+    start = time.time()
+
+    threads = 4
+    if self.config['single_thread']:
+      threads = 1
+
+    pool = ThreadPool(threads)
+    results = pool.map(
+        unwrap_self_upload_file, zip(
+            [self] * len(files), files))
+
+    end = time.time()
+
+    print 'all files uploaded in', end - start, 's'
+
+    full_content = '\n'.join(results) + '\n'
+
+    if self.config['ad'] == True:
+      full_content += 'Post by bbsupload.py ver: ' + config['version'] + "\n"
+
+    self.payload['text'] = full_content.encode('gb2312')
+
+    if self.config['up_only'] == True:
+      return
+
+    resp = self.session.post(
+        'https://bbs.sjtu.edu.cn/bbssnd',
+        headers=self.headers,
+        data=self.payload)
+
+    print 'Posting...'
+    if resp.status_code == 200:
+      print 'Posted!'
+    else:
+      print '!Error! Failed to post'
 
 # load account info into config
+
+
 def load_account(filename, config):
   with open(filename) as data_file:
     account = json.load(data_file)
@@ -104,6 +204,8 @@ def print_usage(argv, config):
   print '  -t, --title:   ', 'post title. default is "noname"'
   print '  -c, --content: ', 'content of the post. default is empty'
   print '  -n, --no-ad:   ', 'post without ad'
+  print '  -s:            ', 'use single thread. default uses 4 threads'
+  print '  -u, --up-only  ', 'upload only, do not post'
   print '  -h, --help:    ', 'print usage'
 
 
@@ -117,7 +219,9 @@ def parse_args(argv):
       'files': [],
       'ad': True,
       'account': 'account.json',
-      'version': '0.2'
+      'version': '0.2',
+      'up_only': False,
+      'single_thread': False
   }
 
   index = 1
@@ -140,6 +244,10 @@ def parse_args(argv):
       config['content'] = sys.argv[index]
     elif arg == '--no-ad' or arg == '-n':
       config['ad'] = False
+    elif arg == '--up-only' or arg == '-u':
+      config['up_only'] = True
+    elif arg == '-s':
+      config['single_thread'] = True
     elif arg == '--help' or arg == '-h':
       print_usage(sys.argv, config)
       sys.exit(0)
@@ -157,10 +265,17 @@ if __name__ == '__main__':
   config = parse_args(sys.argv)
   load_account(config['account'], config)
 
+  # filter out resized images
+  config['files'] = filter(
+      lambda f: '_resized_by_uploader' not in f,
+      config['files'])
+
   l = len(config['files'])
   if l == 0:
     print '!Warning! file set is empty'
   else:
     print l, 'files found!'
 
-  post(config)
+  uploader = Uploader(config)
+  if uploader.login():
+    uploader.post()
