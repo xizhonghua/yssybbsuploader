@@ -39,6 +39,7 @@ To prevent credential leakage, account is load from a json file (default is acco
 ### Dependencies
 * python2.7 ?
 * [requests](http://docs.python-requests.org/en/master/)
+* [Pillow](http://pillow.readthedocs.org/en/3.1.x/index.html)
 
 ### TODO
 * (done) auto resize large image 
