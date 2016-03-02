@@ -1,5 +1,11 @@
 #!/usr/bin/env python
 
+################################################
+# Author: Zhonghua Xi (xxfflower@YSSY)
+# Email: xizhonghua (AT) gmail.com
+################################################
+
+import json
 import re
 import sys
 from requests import Request, Session
@@ -37,13 +43,14 @@ def post(config):
                 headers=headers)
 
   if 'utmpuserid' in s.cookies.get_dict():
-    print 'Logged in!'
+    print 'Logged in with id:', config['id']
   else:
-    print 'Failed to login!', resp.text.encode('gb2312')
+    print 'Failed to login with id:', config['id']
+    return
 
   payload = {
       'board': config['board'],
-      'title': config['title'],
+      'title': config['title'].decode('utf-8').encode('gb2312'),
       'signature': 1,
       'autocr': 'on',
       'text': 'content',
@@ -51,8 +58,11 @@ def post(config):
       'live': 180,
   }
 
-  full_content = config['content'] + '\n'
+  print 'board   =', config['board']
+  print 'title   =', config['title']
+  print 'content =', config['content']
 
+  full_content = config['content'].decode('utf-8')
   # upload files
   for filename in config['files']:
     print 'uploading', filename, 'to', config['board']
@@ -61,9 +71,9 @@ def post(config):
     full_content += fileurl + '\n'
 
   if config['ad'] == True:
-    full_content += 'Posted by upload.py'
+    full_content += 'Post by bbsupload.py ver: ' + config['version']
 
-  payload['text'] = full_content
+  payload['text'] = full_content.encode('gb2312')
 
   resp = s.post(
       'https://bbs.sjtu.edu.cn/bbssnd',
@@ -74,20 +84,30 @@ def post(config):
   if resp.status_code == 200:
     print 'Posted!'
   else:
-    print 'Error! Failed to post'
+    print '!Error! Failed to post'
 
 
-def print_usage(argv):
-  print 'Usage:', argv[0], '-i id -p pw [options] file1 file2 file3...'
+# load account info into config
+def load_account(filename, config):
+  with open(filename) as data_file:
+    account = json.load(data_file)
+  config['id'] = account['id']
+  config['pw'] = account['pw']
+
+
+def print_usage(argv, config):
+  print 'YSSY BBS file uploader ver: ' + config['version']
+  print 'Usage:', argv[0], '[options] file1 file2 file3...'
   print 'Options:'
-  print '  -i, --id:      ', 'bbs id'
-  print '  -p, --pw:      ', 'bbs password'
+  print '  -a, --account  ', 'account filename. default is account.json'
   print '  -b, --board:   ', 'board to upload/post'
   print '  -t, --title:   ', 'post title'
   print '  -c, --content: ', 'content of the post'
   print '  -n, --no-ad:   ', 'post without ad'
+  print '  -h, --help:    ', 'print usage'
 
-if __name__ == '__main__':
+
+def parse_args(argv):
   config = {
       'id': None,
       'pw': None,
@@ -95,14 +115,17 @@ if __name__ == '__main__':
       'title': 'noname',
       'content': '',
       'files': [],
-      'ad': True
+      'ad': True,
+      'account': 'account.json',
+      'version': '0.2'
   }
+
   index = 1
-  while index < len(sys.argv):
-    arg = sys.argv[index]
-    if arg == '--id' or arg == '-i':
+  while index < len(argv):
+    arg = argv[index]
+    if arg == '--account' or arg == '-a':
       index += 1
-      config['id'] = sys.argv[index]
+      config['account'] = sys.argv[index]
     elif arg == '--pw' or arg == '-p':
       index += 1
       config['pw'] = sys.argv[index]
@@ -117,14 +140,22 @@ if __name__ == '__main__':
       config['content'] = sys.argv[index]
     elif arg == '--no-ad' or arg == '-n':
       config['ad'] = False
+    elif arg == '--help' or arg == '-h':
+      print_usage(sys.argv, config)
+      sys.exit(0)
+    elif arg[0] == '-':
+      print 'Unknown flag', arg
+      print_usage(sys.argv, config)
+      sys.exit(-1)
     else:
       config['files'].append(arg)
     index += 1
+    # end while
+  return config
 
-  if config['id'] is None or config['pw'] is None:
-    print '!Error! id or pw is null'
-    print_usage(sys.argv)
-    sys.exit(-1)
+if __name__ == '__main__':
+  config = parse_args(sys.argv)
+  load_account(config['account'], config)
 
   l = len(config['files'])
   if l == 0:
