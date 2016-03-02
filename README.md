@@ -39,3 +39,4 @@ To prevent credential leakage, account is load from a json file (default is acco
 
 ### TODO
 * auto resize large image
+* multi-thread uploading
