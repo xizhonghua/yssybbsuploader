@@ -1,8 +1,8 @@
 # yssybbsuploader
 
-### About
+### Features
 * Upload images/files to [YSSY BBS](https://bbs.sjtu.edu.cn)
-* Post with links to all uploaded files
+* Post with content and links to all uploaded files
 
 ### Usage
 ```
@@ -21,5 +21,12 @@
 
 ### Example
 ```
-./bbsupload.py -i your_id -p your_pwd -b PPPerson -t test -c "test of new tool" ~/Pictures/jpeg_full/wanzi/*small*.jpg
+./bbsupload.py -i your_id -p your_pwd -b PPPerson -t test -c "test of new tool" ~/Pictures/*.jpg
 ```
+
+### Dependencies
+* python2.7 ?
+* [requests](http://docs.python-requests.org/en/master/)
+
+### TODO
+* auto resize large image
