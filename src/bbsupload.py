@@ -99,10 +99,10 @@ def print_usage(argv, config):
   print 'YSSY BBS file uploader ver: ' + config['version']
   print 'Usage:', argv[0], '[options] file1 file2 file3...'
   print 'Options:'
-  print '  -a, --account  ', 'account filename. default is account.json'
-  print '  -b, --board:   ', 'board to upload/post'
-  print '  -t, --title:   ', 'post title'
-  print '  -c, --content: ', 'content of the post'
+  print '  -a, --account  ', 'account filename. default is "account.json"'
+  print '  -b, --board:   ', 'board to upload/post. default is "PPPerson"'
+  print '  -t, --title:   ', 'post title. default is "noname"'
+  print '  -c, --content: ', 'content of the post. default is empty'
   print '  -n, --no-ad:   ', 'post without ad'
   print '  -h, --help:    ', 'print usage'
 
