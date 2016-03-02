@@ -14,7 +14,7 @@ To prevent credential leakage, account is load from a json file (default is acco
 ```
 {
   "id": "your_id",
-  "pw": "your_pd"
+  "pw": "your_pw"
 }
 ```
 
