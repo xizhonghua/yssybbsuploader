@@ -6,22 +6,31 @@
 
 ### Usage
 ```
-./bbsupload.py -i id -p pw [options] [file1 file2 file3 ...] 
+./bbsupload.py ../src/bbsupload.py [options] [file1 file2 file3...]
+```
+
+### Accounts
+To prevent credential leakage, account is load from a json file (default is account.json) in following format
+```
+{
+  "id": "your_id",
+  "pw": "your_pd"
+}
 ```
 
 ### Options
 ```
--i, --id:       bbs id
--p, --pw:       bbs password
--b, --board:    board to upload/post
--t, --title:    post title
--c, --content:  content of the post
--n, --no-ad:    post without ad
+  -a, --account   account filename. default is "account.json"
+  -b, --board:    board to upload/post. default is "PPPerson"
+  -t, --title:    post title. default is "noname"
+  -c, --content:  content of the post. default is empty
+  -n, --no-ad:    post without ad
+  -h, --help:     print usage
 ```
 
 ### Example
 ```
-./bbsupload.py -i your_id -p your_pwd -b PPPerson -t test -c "test of new tool" ~/Pictures/*.jpg
+./bbsupload.py -b test -t "中文标题" -c "中文内容" ~/Pictures/*.jpg
 ```
 
 ### Dependencies
