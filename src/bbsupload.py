@@ -12,9 +12,14 @@ import os
 import re
 import sys
 import time
+import hashlib
 from PIL import Image
 from multiprocessing.pool import ThreadPool
 from requests import Request, Session
+
+
+def is_ascii(s):
+  return all(ord(c) < 128 for c in s)
 
 
 def unwrap_self_upload_file(arg, **kwarg):
@@ -40,7 +45,9 @@ class Uploader():
     scale = 1800.0 / max(img.size) * factor
     new_size = (int(img.size[0] * scale), int(img.size[1] * scale))
     new_img = img.resize(new_size, Image.LANCZOS)
-    new_filename = filename + '._resized_by_uploader.jpg'
+    path, basename = os.path.split(filename)
+    hashed_filename = hashlib.md5(basename).hexdigest()
+    new_filename = path + '/' + hashed_filename + '_resized_by_uploader.jpg'
     new_img.save(new_filename, "JPEG", quality=80, optimize=True)
     return new_filename
 
@@ -67,6 +74,8 @@ class Uploader():
   # upload a file to server, return its uploaded url
   def upload_file(self, filename):
 
+    org_filename = filename
+
     # file size in kb
     file_size = int(os.path.getsize(filename) / 1024.00)
 
@@ -78,20 +87,21 @@ class Uploader():
         '\n')
 
     tmp_filename = None
-    # large file
-    if file_size > 1000:
+    resized = False
+
+    # A large file or has Unicode characters in the filename
+    if file_size > 1000 or not is_ascii(filename):
       if self.is_image(filename):
         tmp_filename, size = self.fit_img(filename)
         sys.stdout.write(
-            'resized, new image filesize = ' +
+            'resized to ' + tmp_filename + ', new image filesize = ' +
             str(
                 size /
                 1024) +
             'kb\n')
-        # recursive call...
-        url = self.upload_file(tmp_filename)
 
-        return url
+        filename = tmp_filename
+        resized = True
       else:
         # other types
         sys.stdout.write('Cannot handle non-image large file...')
@@ -108,9 +118,19 @@ class Uploader():
 
     m = re.search(r"<font color=green>([^<]+)", resp.text)
 
+    if m is None:
+      sys.stdout.write('failed to upload ' + org_filename + '\n')
+      return ''
+
     url = m.groups()[0]
 
-    sys.stdout.write('uploaded url = ' + url + '\n')
+    sys.stdout.write(
+        'uploaded ' +
+        org_filename.decode('utf-8') +
+        (' (resized)' if resized else '') +
+        ' to ' +
+        url +
+        '\n')
 
     return url
 
