@@ -1,8 +1,9 @@
-# yssybbsuploader
+# YSSY BBS Uploader
 
 ### Features
 * Upload images/files to [YSSY BBS](https://bbs.sjtu.edu.cn)
 * Post with content and links to all uploaded files
+* Auto resize images with filesize > 1MB
 
 ### Usage
 ```
@@ -25,6 +26,8 @@ To prevent credential leakage, account is load from a json file (default is acco
   -t, --title:    post title. default is "noname"
   -c, --content:  content of the post. default is empty
   -n, --no-ad:    post without ad
+  -s:             use single thread. default uses 4 threads
+  -u, --up-only   upload only, do not post
   -h, --help:     print usage
 ```
 
@@ -36,7 +39,12 @@ To prevent credential leakage, account is load from a json file (default is acco
 ### Dependencies
 * python2.7 ?
 * [requests](http://docs.python-requests.org/en/master/)
+* [Pillow](http://pillow.readthedocs.org/en/3.1.x/index.html)
 
 ### TODO
-* auto resize large image
-* multi-thread uploading
+* (done) auto resize large image 
+* (done) multi-thread uploading
+
+### Contact
+* Zhonghua Xi (xxfflower@YSSY)
+* xizhonghua (at) gmail.com
