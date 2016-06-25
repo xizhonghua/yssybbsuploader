@@ -239,7 +239,7 @@ def parse_args(argv):
       'files': [],
       'ad': True,
       'account': 'account.json',
-      'version': '0.2',
+      'version': '0.2.1',
       'up_only': False,
       'single_thread': False
   }
