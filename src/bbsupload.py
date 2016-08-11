@@ -165,7 +165,7 @@ class Uploader():
     print 'title   =', self.config['title']
     print 'content =', self.config['content']
 
-    full_content = self.config['content'].decode('utf-8')
+    full_content = self.config['content'].decode('utf-8') + '\n'*3
 
     files = self.config['files']
 
@@ -184,7 +184,7 @@ class Uploader():
 
     print 'all files uploaded in', end - start, 's'
 
-    full_content = '\n'.join(results) + '\n'
+    full_content += '\n'.join(results) + '\n'
 
     if self.config['ad'] == True:
       full_content += 'Post by bbsupload.py ver: ' + config['version'] + "\n"
