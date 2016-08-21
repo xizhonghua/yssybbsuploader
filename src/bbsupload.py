@@ -16,6 +16,7 @@ import hashlib
 from PIL import Image
 from multiprocessing.pool import ThreadPool
 from requests import Request, Session
+from shutil import copyfile
 
 
 def is_ascii(s):
@@ -39,15 +40,20 @@ class Uploader():
     }
     self.session = Session()
 
+  # hash the filename
+  def hash_img(self, filename):
+    path, basename = os.path.split(filename)
+    hashed_filename = hashlib.md5(basename).hexdigest()
+    new_filename = path + '/' + hashed_filename + '_resized_by_uploader.jpg'
+    return new_filename
+
   # resize an image
   def resize_img(self, filename, factor=1.0):
     img = Image.open(filename)
     scale = 1800.0 / max(img.size) * factor
     new_size = (int(img.size[0] * scale), int(img.size[1] * scale))
     new_img = img.resize(new_size, Image.LANCZOS)
-    path, basename = os.path.split(filename)
-    hashed_filename = hashlib.md5(basename).hexdigest()
-    new_filename = path + '/' + hashed_filename + '_resized_by_uploader.jpg'
+    new_filename = self.hash_img(filename)
     new_img.save(new_filename, "JPEG", quality=80, optimize=True)
     return new_filename
 
@@ -90,22 +96,22 @@ class Uploader():
     resized = False
 
     # A large file or has Unicode characters in the filename
-    if file_size > 1000 or not is_ascii(filename):
-      if self.is_image(filename):
+    if self.is_image(filename):
+      if file_size > 1000:
         tmp_filename, size = self.fit_img(filename)
         sys.stdout.write(
             'resized to ' + tmp_filename + ', new image filesize = ' +
-            str(
-                size /
-                1024) +
-            'kb\n')
-
+            str(size / 1024) + 'kb\n')
         filename = tmp_filename
         resized = True
-      else:
-        # other types
-        sys.stdout.write('Cannot handle non-image large file...')
-        return ''
+      elif not is_ascii(filename):
+        tmp_filename = self.hash_img(filename)
+        copyfile(filename, tmp_filename)
+        filename = tmp_filename
+    else:
+      # other types
+      sys.stdout.write('Cannot handle non-image large file...')
+      return ''
 
     files = {
         'up': open(filename, 'rb')
@@ -153,7 +159,7 @@ class Uploader():
 
     self.payload = {
         'board': self.config['board'],
-        'title': self.config['title'].decode('utf-8').encode('gb2312'),
+        'title': self.config['title'].decode('utf-8').encode('cp936'),
         'signature': 1,
         'autocr': 'on',
         'text': 'content',
