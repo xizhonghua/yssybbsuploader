@@ -3,7 +3,7 @@
 ### Features
 * Upload images/files to [YSSY BBS](https://bbs.sjtu.edu.cn)
 * Post with content and links to all uploaded files
-* Auto resize images with filesize > 1MB
+* Auto resize images with filesize > 1MB (BBS limit)
 
 ### Usage
 ```
@@ -11,7 +11,7 @@
 ```
 
 ### Accounts
-To prevent credential leakage, account is load from a json file (default is account.json) in following format
+To prevent credential leakage, account will be loaded from a json file (default is account.json) in following format
 ```
 {
   "id": "your_id",
